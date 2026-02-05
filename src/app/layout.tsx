@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { VERSION } from "@/lib/utils";
 import { Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full font-sans bg-background text-foreground`}
       >
+      <Suspense>
         {/* Subtle Background Pattern */}
         <div className="fixed inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-50" />
 
@@ -79,6 +81,7 @@ export default function RootLayout({
             {children}
           </main>
         </div>
+        </Suspense>
       </body>
     </html>
   );
