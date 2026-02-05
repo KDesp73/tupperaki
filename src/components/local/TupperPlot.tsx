@@ -18,7 +18,7 @@ export default function TupperPlot({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // x: column index, y: multiples of 17
-  const [pan, setPan] = useState({ x: 0, y: 0n });
+  const [pan, setPan] = useState({ x: -8, y: 0n });
   const [isDragging, setIsDragging] = useState(false);
   
   // Track accumulated movement to avoid "ghosting" or skipping bits
