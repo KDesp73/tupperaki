@@ -84,7 +84,7 @@ export default function TupperExplorer() {
       <TupperPlot
         bitmapWidth={bitmapWidth}
         bitmapHeight={bitmapHeight}
-        scale={20}
+        scale={11}
         yOffset={computedY == 0n ? yOffset : computedY}
       />
     </div>
