@@ -23,7 +23,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto text-lg text-muted-foreground leading-relaxed space-y-6">
           <p>
             An equation that can encode <span className="font-semibold text-foreground">any image</span> as a single, 
-            astronomically large number. When plotted, the formula reproduces the image exactly — 
+            astronomically large number. When plotted, the formula reproduces the image exactly, 
             including the formula itself.
           </p>
           
