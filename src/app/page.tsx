@@ -1,92 +1,54 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import TupperCanvas from "@/components/local/TupperCanvas";
-import TupperPlot from "@/components/local/TupperPlot";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { computeBitmapY, FORMULA_Y_OFFSET } from "@/lib/tupper";
 
-export default function TupperExplorer() {
-  const bitmapWidth = 106; // <- fits the formula exactly
-  const bitmapHeight = 17;
-
-  const [bitmap, setBitmap] = useState(
-    Array.from({ length: bitmapHeight }, () => Array(bitmapWidth).fill(0))
-  );
-
-  const [computedY, setComputedY] = useState<bigint>(
-    computeBitmapY(bitmap)
-  );
-  const [yOffset, setYOffset] = useState<bigint>(computedY);
-
-  // Recompute computedY whenever bitmap changes
-  useEffect(() => {
-    setComputedY(computeBitmapY(bitmap));
-  }, [bitmap]);
-
-  const copyY = () => navigator.clipboard.writeText(computedY.toString());
-
+export default function Home() {
   return (
-    <div className="p-6 bg-gray-50 min-h-screen space-y-6">
-      {/* Controls */}
-      <div className="flex flex-wrap gap-4 items-center">
-        <Label>Y Offset</Label>
-        <Input
-          value={yOffset.toString()}
-          onChange={(e) => {
-            try {
-              setYOffset(BigInt(e.target.value));
-            } catch {}
-          }}
-          className="w-64"
-        />
+    <>
+      {/* Header */}
+      <h1 className="text-4xl font-bold text-center">
+        Tupper's Self-Referential Formula Explorer
+      </h1>
 
-        <Label>Computed Y</Label>
-        <Input value={computedY.toString()} readOnly className="w-96" />
-
-        <Button onClick={copyY}>Copy</Button>
-        <Button onClick={() => setYOffset(FORMULA_Y_OFFSET)}>Formula</Button>
-        <Button
-          onClick={() =>
-            setBitmap(
-              Array.from({ length: bitmapHeight }, () =>
-                Array(bitmapWidth).fill(0)
-              )
-            )
-          }
-        >
-          Clear
-        </Button>
-        <Button
-          onClick={() =>
-            setBitmap(
-              Array.from({ length: bitmapHeight }, () =>
-                Array(bitmapWidth).fill(1)
-              )
-            )
-          }
-        >
-          Fill All
-        </Button>
+      {/* Introduction */}
+      <div className="max-w-3xl text-center text-gray-700 space-y-4">
+        <p>
+          Tupper's self-referential formula is a famous mathematical equation that can encode
+          any bitmap image as a single extremely large number. Remarkably, when plotted,
+          the formula reproduces the bitmap exactly — including its own graph!
+        </p>
+        <p>
+          This tool allows you to explore the incredible world of Tupper's formula. You can:
+        </p>
+        <ul className="list-disc list-inside text-left max-w-md mx-auto space-y-2">
+          <li>Draw your own bitmaps and compute the corresponding Y value.</li>
+          <li>Explore the plane of the formula by adjusting the Y offset and zooming.</li>
+          <li>Visualize how the formula reproduces any image you encode.</li>
+        </ul>
+        <p>
+          The self-referential nature of the formula makes it both a mathematical curiosity
+          and a fun visualization tool.
+        </p>
       </div>
 
-      {/* Drawing canvas */}
-      <TupperCanvas
-        bitmap={bitmap}
-        setBitmap={setBitmap}
-        bitmapWidth={bitmapWidth}
-        bitmapHeight={bitmapHeight}
-      />
+      {/* Navigation buttons */}
+      <div className="flex flex-wrap gap-4 justify-center">
+        <Link href="/draw">
+          <Button className="px-6 py-3 text-lg">Draw Bitmaps</Button>
+        </Link>
+        <Link href="/explore">
+          <Button className="px-6 py-3 text-lg">Explore Tupper Formula</Button>
+        </Link>
+      </div>
 
-      {/* Tupper plot */}
-      <TupperPlot
-        bitmapWidth={bitmapWidth}
-        bitmapHeight={bitmapHeight}
-        scale={11}
-        yOffset={computedY == 0n ? yOffset : computedY}
-      />
-    </div>
+      {/* Footer / reference */}
+      <div className="max-w-2xl text-center text-gray-500 mt-12 text-sm">
+        <p>
+          Inspired by Jeff Tupper's self-referential formula. Learn more about the math behind
+          it in <a className="text-blue-600 underline" href="https://en.wikipedia.org/wiki/Tupper%27s_self-referential_formula" target="_blank">Wikipedia</a>.
+        </p>
+      </div>
+    </>
   );
 }

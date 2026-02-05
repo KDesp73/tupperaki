@@ -148,10 +148,10 @@ export default function TupperPlot({
       }}
     >
       <canvas ref={canvasRef} className="block" style={{ imageRendering: "pixelated" }} />
-      <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none font-mono">
+      {/*<div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none font-mono">
         X-Offset: {(BigInt(pan.x) * BigInt(bitmapHeight)).toString().slice(0, 30)}...
         Y-Offset: {(yOffset + (pan.y * BigInt(bitmapHeight))).toString().slice(0, 30)}...
-      </div>
+      </div>*/}
     </div>
   );
 }
