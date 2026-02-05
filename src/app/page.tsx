@@ -40,6 +40,11 @@ export default function TupperExplorer() {
   // Copy computed Y to clipboard
   const copyY = () => navigator.clipboard.writeText(computedY.toString());
 
+  const setTo1 = () => {
+    const filled = Array.from({length: bitmapHeight}, () => Array(bitmapWidth).fill(1))
+    setBitmap(filled);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Controls */}
@@ -67,6 +72,7 @@ export default function TupperExplorer() {
         <Input type="text" value={computedY.toString()} readOnly className="w-80" />
 
         <Button onClick={copyY}>Copy Y</Button>
+        <Button onClick={setTo1}>Fill All</Button>
       </div>
 
       {/* Drawing canvas */}
