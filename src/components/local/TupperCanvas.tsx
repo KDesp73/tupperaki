@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 interface TupperCanvasProps {
   bitmapWidth: number;
   bitmapHeight: number;
-  gridCellSize: number;
   bitmap: number[][];
   setBitmap: (bitmap: number[][]) => void;
 }
@@ -11,16 +10,37 @@ interface TupperCanvasProps {
 export default function TupperCanvas({
   bitmapWidth,
   bitmapHeight,
-  gridCellSize,
   bitmap,
   setBitmap,
 }: TupperCanvasProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const [drawing, setDrawing] = useState(false);
+  const [currentCellSize, setCurrentCellSize] = useState(0);
 
-  const drawDrawingCanvas = () => {
+  // Handle responsive scaling
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current && drawCanvasRef.current) {
+        const width = containerRef.current.clientWidth;
+        const cellSize = width / bitmapWidth;
+        setCurrentCellSize(cellSize);
+
+        const canvas = drawCanvasRef.current;
+        canvas.width = width;
+        canvas.height = cellSize * bitmapHeight;
+      }
+    };
+
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, [bitmapWidth, bitmapHeight]);
+
+  // Redraw when bitmap or size changes
+  useEffect(() => {
     const canvas = drawCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || currentCellSize === 0) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -32,87 +52,79 @@ export default function TupperCanvas({
       for (let x = 0; x < bitmapWidth; x++) {
         if (bitmap[y][x]) {
           ctx.fillStyle = "black";
-          /**
-           * ARTIFICIAL ROTATION:
-           * We draw the bitmap array upside down and backwards 
-           * to align the UI with the way Tupper's math stores bits.
-           */
-          const drawX = (bitmapWidth - 1 - x) * gridCellSize;
-          const drawY = (bitmapHeight - 1 - y) * gridCellSize;
-          ctx.fillRect(drawX, drawY, gridCellSize, gridCellSize);
+          // 180-degree mapping for Tupper logic
+          const drawX = (bitmapWidth - 1 - x) * currentCellSize;
+          const drawY = (bitmapHeight - 1 - y) * currentCellSize;
+          // Use Math.ceil for the fill to prevent sub-pixel gaps in the grid
+          ctx.fillRect(drawX, drawY, Math.ceil(currentCellSize), Math.ceil(currentCellSize));
         }
       }
     }
 
-    // Grid lines remain stationary
+    // Grid lines
     ctx.strokeStyle = "rgba(0,0,0,0.1)";
     ctx.lineWidth = 1;
     for (let x = 0; x <= bitmapWidth; x++) {
       ctx.beginPath();
-      ctx.moveTo(x * gridCellSize, 0);
-      ctx.lineTo(x * gridCellSize, bitmapHeight * gridCellSize);
+      ctx.moveTo(x * currentCellSize, 0);
+      ctx.lineTo(x * currentCellSize, canvas.height);
       ctx.stroke();
     }
     for (let y = 0; y <= bitmapHeight; y++) {
       ctx.beginPath();
-      ctx.moveTo(0, y * gridCellSize);
-      ctx.lineTo(bitmapWidth * gridCellSize, y * gridCellSize);
+      ctx.moveTo(0, y * currentCellSize);
+      ctx.lineTo(canvas.width, y * currentCellSize);
       ctx.stroke();
     }
-  };
-
-  useEffect(() => {
-    drawDrawingCanvas();
-  }, [bitmap]);
+  }, [bitmap, currentCellSize, bitmapWidth, bitmapHeight]);
 
   const handleDrawMouse = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!drawing) return;
+    if (!drawing || currentCellSize === 0) return;
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
 
-    // Calculate raw grid coordinates from mouse position
-    const rawX = Math.floor((e.clientX - rect.left) / gridCellSize);
-    const rawY = Math.floor((e.clientY - rect.top) / gridCellSize);
+    // Calculate grid coordinates using the dynamic cell size
+    const rawX = Math.floor((e.clientX - rect.left) / currentCellSize);
+    const rawY = Math.floor((e.clientY - rect.top) / currentCellSize);
 
-    /**
-     * INVERSE COORDINATE MAPPING:
-     * We map the visual click back to the "true" math coordinate.
-     * Click at Top-Left (0,0) -> Maps to array [MaxH][MaxW]
-     */
+    // Inverse mapping to align with Tupper Plot logic
     const x = bitmapWidth - 1 - rawX;
     const y = bitmapHeight - 1 - rawY;
 
     if (x < 0 || x >= bitmapWidth || y < 0 || y >= bitmapHeight) return;
 
     const newBitmap = bitmap.map((row) => [...row]);
-    if (e.buttons === 1) newBitmap[y][x] = 1; // Left click draw
-    if (e.buttons === 2) newBitmap[y][x] = 0; // Right click erase
+    if (e.buttons === 1) newBitmap[y][x] = 1;
+    if (e.buttons === 2) newBitmap[y][x] = 0;
 
     setBitmap(newBitmap);
   };
 
   return (
-    <canvas
-      ref={drawCanvasRef}
-      width={bitmapWidth * gridCellSize}
-      height={bitmapHeight * gridCellSize}
-      style={{
-        display: "block",
-        imageRendering: "pixelated",
-        marginBottom: "20px",
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-        cursor: "crosshair",
-      }}
-      onMouseDown={(e) => {
-        setDrawing(true);
-        handleDrawMouse(e);
-      }}
-      onMouseUp={() => setDrawing(false)}
-      onMouseLeave={() => setDrawing(false)}
-      onMouseMove={handleDrawMouse}
-      onContextMenu={(e) => e.preventDefault()}
-    />
+    <div ref={containerRef} className="w-full">
+      <canvas
+        ref={drawCanvasRef}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "auto",
+          imageRendering: "pixelated",
+          marginBottom: "20px",
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          cursor: "crosshair",
+          touchAction: "none", // Prevents scrolling while drawing on mobile
+        }}
+        onMouseDown={(e) => {
+          setDrawing(true);
+          handleDrawMouse(e);
+        }}
+        onMouseUp={() => setDrawing(false)}
+        onMouseLeave={() => setDrawing(false)}
+        onMouseMove={handleDrawMouse}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+    </div>
   );
 }

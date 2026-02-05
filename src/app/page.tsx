@@ -11,13 +11,11 @@ import { computeBitmapY, FORMULA_Y_OFFSET } from "@/lib/tupper";
 export default function TupperExplorer() {
   const bitmapWidth = 106; // <- fits the formula exactly
   const bitmapHeight = 17;
-  const gridCellSize = 20;
 
   const [bitmap, setBitmap] = useState(
     Array.from({ length: bitmapHeight }, () => Array(bitmapWidth).fill(0))
   );
 
-  const [scale, setScale] = useState(20);
   const [computedY, setComputedY] = useState<bigint>(
     computeBitmapY(bitmap)
   );
@@ -74,36 +72,20 @@ export default function TupperExplorer() {
         </Button>
       </div>
 
-      {/* Scale slider */}
-      <div className="flex items-center gap-4">
-        <Label>Zoom</Label>
-        <Input
-          type="range"
-          min={4}
-          max={40}
-          step={1}
-          value={scale}
-          onChange={(e) => setScale(Number(e.target.value))}
-          className="w-64"
-        />
-        <span className="w-10 text-right">{scale}</span>
-      </div>
-
       {/* Drawing canvas */}
       <TupperCanvas
         bitmap={bitmap}
         setBitmap={setBitmap}
         bitmapWidth={bitmapWidth}
         bitmapHeight={bitmapHeight}
-        gridCellSize={gridCellSize}
       />
 
       {/* Tupper plot */}
       <TupperPlot
         bitmapWidth={bitmapWidth}
         bitmapHeight={bitmapHeight}
-        scale={scale}
-        yOffset={computedY | yOffset}
+        scale={20}
+        yOffset={computedY == 0n ? yOffset : computedY}
       />
     </div>
   );
