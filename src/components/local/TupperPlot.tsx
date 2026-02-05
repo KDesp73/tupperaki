@@ -1,116 +1,102 @@
-import { useRef, useState, useEffect } from "react";
+import { tupperPixel } from "@/lib/tupper";
+import { useEffect, useRef, useState } from "react";
 
-interface TupperPlotProps {
+interface Props {
   bitmapWidth: number;
   bitmapHeight: number;
-  scale: number;
-  bitmap: number[][];
+  scale: number; // controlled by slider
+  yOffset: bigint;
 }
 
 export default function TupperPlot({
   bitmapWidth,
   bitmapHeight,
   scale,
-  bitmap,
-}: TupperPlotProps) {
-  const tupperCanvasRef = useRef<HTMLCanvasElement>(null);
+  yOffset,
+}: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  const computeBitmapY = (bitmap: number[][]): bigint => {
-    let y = BigInt(0);
-    for (let col = 0; col < bitmap[0].length; col++) {
-      for (let row = 0; row < bitmapHeight; row++) {
-        const tupperRow = bitmapHeight - 1 - row;
-        if (bitmap[row][col]) y += BigInt(2) ** (BigInt(17 * col) + BigInt(tupperRow));
-      }
-    }
-    return y;
-  };
-
-  const [yOffset, setYOffset] = useState<bigint>(computeBitmapY(bitmap));
-  const [isPanning, setIsPanning] = useState(false);
-  const panStartY = useRef(0);
-  const panStartYOffset = useRef<bigint>(computeBitmapY(bitmap));
+  // Responsive width listener
+  useEffect(() => {
+    const update = () => {
+      if (containerRef.current) setContainerWidth(containerRef.current.clientWidth);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   useEffect(() => {
-    setYOffset(computeBitmapY(bitmap));
-  }, [bitmap]);
+    const canvas = canvasRef.current;
+    if (!canvas || containerWidth === 0) return;
 
-  const tupperPixel = (x: number, y: number) => {
-    const Y = yOffset + BigInt(y);
-    const Ydiv = Y / BigInt(17);
-    const bitIndex = BigInt(17 * x) + (Y % BigInt(17));
-    return ((Ydiv >> bitIndex) & BigInt(1)) === BigInt(1);
-  };
-
-  const renderTupper = () => {
-    const canvas = tupperCanvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const effectiveScale = Math.min(scale, containerWidth / bitmapWidth);
+    const canvasWidth = bitmapWidth * effectiveScale;
+    const canvasHeight = bitmapHeight * effectiveScale;
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw pixels with 180-degree rotation
     for (let x = 0; x < bitmapWidth; x++) {
       for (let y = 0; y < bitmapHeight; y++) {
-        const on = tupperPixel(x, y);
+        // We still query the library with original x, y
+        const on = tupperPixel(x, y, yOffset);
+
         ctx.fillStyle = on ? "black" : "white";
-        ctx.fillRect(x * scale, (bitmapHeight - 1 - y) * scale, scale, scale);
+
+        /**
+         * ARTIFICIAL 180-DEGREE ROTATION:
+         * 1. Horizontal flip: (bitmapWidth - 1 - x)
+         * 2. Vertical flip: In standard Canvas, y=0 is top. 
+         * Since Tupper math y=0 is bottom, using 'y' directly 
+         * effectively flips it compared to the original code.
+         */
+        const drawX = (bitmapWidth - 1 - x) * effectiveScale;
+        const drawY = y * effectiveScale;
+
+        ctx.fillRect(drawX, drawY, effectiveScale, effectiveScale);
       }
     }
 
-    ctx.strokeStyle = "rgba(0,0,0,0.2)";
+    // Draw grid
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
     ctx.lineWidth = 0.5;
+
     for (let x = 0; x <= bitmapWidth; x++) {
       ctx.beginPath();
-      ctx.moveTo(x * scale, 0);
-      ctx.lineTo(x * scale, bitmapHeight * scale);
+      ctx.moveTo(x * effectiveScale, 0);
+      ctx.lineTo(x * effectiveScale, canvasHeight);
       ctx.stroke();
     }
     for (let y = 0; y <= bitmapHeight; y++) {
       ctx.beginPath();
-      ctx.moveTo(0, y * scale);
-      ctx.lineTo(bitmapWidth * scale, y * scale);
+      ctx.moveTo(0, y * effectiveScale);
+      ctx.lineTo(canvasWidth, y * effectiveScale);
       ctx.stroke();
     }
-  };
-
-  useEffect(() => {
-    renderTupper();
-  }, [bitmap, yOffset, scale]);
-
-  const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsPanning(true);
-    panStartY.current = e.clientY;
-    panStartYOffset.current = yOffset;
-  };
-  const handlePanEnd = () => setIsPanning(false);
-  const handlePanMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isPanning) return;
-    const delta = BigInt(Math.round((e.clientY - panStartY.current) / scale));
-    setYOffset(panStartYOffset.current - delta);
-  };
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const delta = BigInt(Math.sign(e.deltaY));
-    setYOffset(yOffset + delta);
-  };
+  }, [bitmapWidth, bitmapHeight, yOffset, scale, containerWidth]);
 
   return (
-    <canvas
-      ref={tupperCanvasRef}
-      width={bitmapWidth * scale}
-      height={bitmapHeight * scale}
-      style={{
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-        imageRendering: "pixelated",
-        cursor: "grab",
-      }}
-      onMouseDown={handlePanStart}
-      onMouseUp={handlePanEnd}
-      onMouseLeave={handlePanEnd}
-      onMouseMove={handlePanMove}
-      onWheel={handleWheel}
-    />
+    <div ref={containerRef} className="w-full overflow-x-auto">
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "auto",
+          imageRendering: "pixelated",
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+        }}
+      />
+    </div>
   );
 }

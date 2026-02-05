@@ -32,12 +32,20 @@ export default function TupperCanvas({
       for (let x = 0; x < bitmapWidth; x++) {
         if (bitmap[y][x]) {
           ctx.fillStyle = "black";
-          ctx.fillRect(x * gridCellSize, y * gridCellSize, gridCellSize, gridCellSize);
+          /**
+           * ARTIFICIAL ROTATION:
+           * We draw the bitmap array upside down and backwards 
+           * to align the UI with the way Tupper's math stores bits.
+           */
+          const drawX = (bitmapWidth - 1 - x) * gridCellSize;
+          const drawY = (bitmapHeight - 1 - y) * gridCellSize;
+          ctx.fillRect(drawX, drawY, gridCellSize, gridCellSize);
         }
       }
     }
 
-    ctx.strokeStyle = "rgba(0,0,0,0.2)";
+    // Grid lines remain stationary
+    ctx.strokeStyle = "rgba(0,0,0,0.1)";
     ctx.lineWidth = 1;
     for (let x = 0; x <= bitmapWidth; x++) {
       ctx.beginPath();
@@ -63,14 +71,23 @@ export default function TupperCanvas({
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
 
-    const x = Math.floor((e.clientX - rect.left) / gridCellSize);
-    const y = Math.floor((e.clientY - rect.top) / gridCellSize);
+    // Calculate raw grid coordinates from mouse position
+    const rawX = Math.floor((e.clientX - rect.left) / gridCellSize);
+    const rawY = Math.floor((e.clientY - rect.top) / gridCellSize);
+
+    /**
+     * INVERSE COORDINATE MAPPING:
+     * We map the visual click back to the "true" math coordinate.
+     * Click at Top-Left (0,0) -> Maps to array [MaxH][MaxW]
+     */
+    const x = bitmapWidth - 1 - rawX;
+    const y = bitmapHeight - 1 - rawY;
 
     if (x < 0 || x >= bitmapWidth || y < 0 || y >= bitmapHeight) return;
 
     const newBitmap = bitmap.map((row) => [...row]);
-    if (e.buttons === 1) newBitmap[y][x] = 1;
-    if (e.buttons === 2) newBitmap[y][x] = 0;
+    if (e.buttons === 1) newBitmap[y][x] = 1; // Left click draw
+    if (e.buttons === 2) newBitmap[y][x] = 0; // Right click erase
 
     setBitmap(newBitmap);
   };
@@ -81,8 +98,7 @@ export default function TupperCanvas({
       width={bitmapWidth * gridCellSize}
       height={bitmapHeight * gridCellSize}
       style={{
-        width: bitmapWidth * gridCellSize,
-        height: bitmapHeight * gridCellSize,
+        display: "block",
         imageRendering: "pixelated",
         marginBottom: "20px",
         border: "1px solid #ccc",
