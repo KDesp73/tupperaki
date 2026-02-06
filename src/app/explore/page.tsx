@@ -96,12 +96,6 @@ export default function ExplorerPage() {
                 />
              </div>
           </div>
-          
-          <div className="absolute bottom-4 right-6 pointer-events-none">
-            <div className="text-[10px] font-mono text-muted-foreground/30 uppercase tracking-[0.2em]">
-              High-Precision Plane
-            </div>
-          </div>
         </div>
       </main>
     </div>

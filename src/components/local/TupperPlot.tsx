@@ -35,25 +35,19 @@ export default function TupperPlot({
     if (!isDragging) return;
 
     const dx = e.clientX - lastMousePos.current.x;
-    const dy = e.clientY - lastMousePos.current.y;
 
     dragAccumulator.current.x += dx;
-    dragAccumulator.current.y += dy;
 
     // Only update state when we've moved enough to cross a full cell
     const xShift = Math.trunc(dragAccumulator.current.x / scale);
-    const yShift = Math.trunc(dragAccumulator.current.y / scale);
 
-    if (xShift !== 0 || yShift !== 0) {
+    if (xShift !== 0) {
       setPan((prev) => ({
         x: prev.x - xShift,
-        // Move UP in plane means INCREASE yOffset
-        y: prev.y + BigInt(yShift),
+        y: prev.y
       }));
 
-      // Keep the remainder for smooth continuous dragging
       dragAccumulator.current.x %= scale;
-      dragAccumulator.current.y %= scale;
     }
 
     lastMousePos.current = { x: e.clientX, y: e.clientY };
